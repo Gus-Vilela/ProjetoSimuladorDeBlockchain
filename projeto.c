@@ -27,8 +27,9 @@ BlocoNaoMinerado inicializaBloco(int i, unsigned char hash[SHA256_DIGEST_LENGTH]
 BlocoNaoMinerado gerarTransacoes(BlocoNaoMinerado bloco);
 //unsigned char *MinerarBloco(BlocoNaoMinerado bloco);
 void printHash(unsigned char hash[], int length);
-BlocoMinerado *aloca(BlocoNaoMinerado blocoAminerar, unsigned char hashBloco[]);
-BlocoMinerado *insereInicio(BlocoMinerado **prim, BlocoNaoMinerado blocoAminerar, unsigned char hashBloco[]);
+//BlocoMinerado *aloca(BlocoNaoMinerado blocoAminerar, unsigned char hashBloco[]);
+//BlocoMinerado *insereInicio(BlocoMinerado **prim, BlocoNaoMinerado blocoAminerar, unsigned char hashBloco[]);
+BlocoMinerado *insereFim(BlocoMinerado **ult, BlocoNaoMinerado blocoAminerar, unsigned char hashBloco[]);
 
 
 int main() {
@@ -36,23 +37,46 @@ int main() {
   for(int j = 0; j < SHA256_DIGEST_LENGTH; ++j){
     hashAnterior[j] = 0;
   } 
-  BlocoMinerado *prim;
-  prim = NULL;
-  for( int i = 1; i <= 5; i++){// quant blocos
-    BlocoNaoMinerado bloco = inicializaBloco(i, hashAnterior);
-    BlocoNaoMinerado blocoTran = gerarTransacoes(bloco);
+  //BlocoMinerado *prim;
+  //prim = NULL;
+  BlocoMinerado *ult = NULL;
+  for(int i = 1; i <= 1000; i++){
+    BlocoNaoMinerado blocoZerado = inicializaBloco(i, hashAnterior);
+    BlocoNaoMinerado blocoTran = gerarTransacoes(blocoZerado);
     
     unsigned char hashMine[SHA256_DIGEST_LENGTH];
     SHA256((unsigned char *)&blocoTran, sizeof(blocoTran), hashMine);
-    while(hashMine[0]!=0 && hashMine[1]!=0)
+    while((hashMine[0]!=0) || (hashMine[1]!=0))
     {
-      printf("Minerando... \n");
       blocoTran.nonce = blocoTran.nonce + 1;
       SHA256((unsigned char *)&blocoTran, sizeof(blocoTran), hashMine);
     }
-      printHash(hashMine, SHA256_DIGEST_LENGTH);
-      prim = insereInicio(&prim, blocoTran, hashMine);
-    }
+    printHash(hashMine, SHA256_DIGEST_LENGTH);
+    insereFim(&ult, blocoTran, hashMine);
+    for(int j = 0; j < SHA256_DIGEST_LENGTH; ++j){
+      hashAnterior[j] = hashMine[j];
+    } 
+  }
+
+/*
+  printf("%d \n", prim->bloco.numero);
+  printf("%d \n", prim->prox->bloco.numero);
+  printf("%d \n", prim->prox->prox->bloco.numero);
+  printf("%d \n", prim->prox->prox->prox->bloco.numero);
+  printf("%d \n", prim->prox->prox->prox->prox->bloco.numero);  
+*/   
+
+  printf("Primeiro %d\n", ult->prox->bloco.numero);
+  printHash(ult->prox->bloco.hashAnterior, SHA256_DIGEST_LENGTH);
+  printf("Meio %d\n", ult->prox->prox->bloco.numero);
+  printHash(ult->prox->prox->bloco.hashAnterior, SHA256_DIGEST_LENGTH);
+  printf("Meio %d\n", ult->prox->prox->prox->bloco.numero);
+  printHash(ult->prox->prox->prox->bloco.hashAnterior, SHA256_DIGEST_LENGTH);
+  printf("Meio %d\n", ult->prox->prox->prox->prox->bloco.numero);
+  printHash(ult->prox->prox->prox->prox->bloco.hashAnterior, SHA256_DIGEST_LENGTH);
+  printf("Último %d\n", ult->bloco.numero);
+  printHash(ult->bloco.hashAnterior, SHA256_DIGEST_LENGTH);
+
   return 0;
 }
 
@@ -66,7 +90,6 @@ BlocoNaoMinerado inicializaBloco(int i, unsigned char hash[SHA256_DIGEST_LENGTH]
   for(int j = 0; j < 184; ++j){
     bloco.data[j] = 0;
   } 
-  
   return bloco;
 }
 
@@ -105,7 +128,7 @@ void printHash(unsigned char hash[] , int length)
   printf("\n");
 }
 
-
+/*
 BlocoMinerado *aloca(BlocoNaoMinerado blocoAminerar, unsigned char hashBloco[]){
   BlocoMinerado *novoNo = (BlocoMinerado *)malloc(sizeof(BlocoMinerado));
   if(novoNo == NULL){
@@ -128,4 +151,29 @@ BlocoMinerado *insereInicio(BlocoMinerado **prim, BlocoNaoMinerado blocoAminerar
   novoNo->prox = *prim;
   *prim = novoNo;
   return novoNo;
+}
+*/
+
+BlocoMinerado *insereFim(BlocoMinerado **ult, BlocoNaoMinerado blocoAminerar, unsigned char hashBloco[])
+{
+  BlocoMinerado *aux = malloc(sizeof(BlocoMinerado));
+  if (aux == NULL)
+    return NULL;
+  aux->bloco = blocoAminerar;
+  for(int j = 0; j < SHA256_DIGEST_LENGTH; ++j){
+    aux->hash[j] = hashBloco[j];
+  }  
+  aux->prox = NULL;
+  if (*ult == NULL)
+  {
+    *ult = aux; 
+    aux->prox = aux; 
+  }
+  else
+  { 
+    aux->prox = (*ult)->prox;
+    (*ult)->prox = aux;
+    *ult = aux;
+  }
+  return aux;
 }
