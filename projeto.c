@@ -30,9 +30,11 @@ void printHash(unsigned char hash[], int length);
 //BlocoMinerado *aloca(BlocoNaoMinerado blocoAminerar, unsigned char hashBloco[]);
 //BlocoMinerado *insereInicio(BlocoMinerado **prim, BlocoNaoMinerado blocoAminerar, unsigned char hashBloco[]);
 BlocoMinerado *insereFim(BlocoMinerado **ult, BlocoNaoMinerado blocoAminerar, unsigned char hashBloco[]);
+BlocoMinerado * pesquisa(BlocoMinerado *ult, int numBloco, int qntBlocos);
 
 
 int main() {
+  int qntBlocos = 20;
   unsigned char hashAnterior[SHA256_DIGEST_LENGTH];
   for(int j = 0; j < SHA256_DIGEST_LENGTH; ++j){
     hashAnterior[j] = 0;
@@ -40,7 +42,7 @@ int main() {
   //BlocoMinerado *prim;
   //prim = NULL;
   BlocoMinerado *ult = NULL;
-  for(int i = 1; i <= 1000; i++){
+  for(int i = 1; i <= qntBlocos; i++){
     BlocoNaoMinerado blocoZerado = inicializaBloco(i, hashAnterior);
     BlocoNaoMinerado blocoTran = gerarTransacoes(blocoZerado);
     
@@ -76,6 +78,11 @@ int main() {
   printHash(ult->prox->prox->prox->prox->bloco.hashAnterior, SHA256_DIGEST_LENGTH);
   printf("Último %d\n", ult->bloco.numero);
   printHash(ult->bloco.hashAnterior, SHA256_DIGEST_LENGTH);
+
+  int numBloco;
+  printf("Digite o numero do bloco que deseja saber o hash: \n");
+  scanf("%d", &numBloco);
+  pesquisa(ult, numBloco, qntBlocos);
 
   return 0;
 }
@@ -176,4 +183,23 @@ BlocoMinerado *insereFim(BlocoMinerado **ult, BlocoNaoMinerado blocoAminerar, un
     *ult = aux;
   }
   return aux;
+}
+
+BlocoMinerado * pesquisa(BlocoMinerado *ult, int numBloco, int qntBlocos){
+  BlocoMinerado * aux;
+  aux = ult;
+  int flag = 0;
+  for(int i = 0; i < qntBlocos; i++){
+    if(aux->bloco.numero == numBloco){
+      printf("O hash do bloco é: ");
+      printHash(aux->hash, SHA256_DIGEST_LENGTH);
+      flag = 1;
+      return aux;
+    }else
+      aux = aux->prox;
+  }
+  if(flag == 0){
+    printf("Bloco nao encontrado \n");
+    return NULL;
+  }
 }
