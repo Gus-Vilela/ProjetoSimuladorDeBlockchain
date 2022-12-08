@@ -24,7 +24,7 @@ struct BlocoMinerado
 typedef struct BlocoMinerado BlocoMinerado;
 
 BlocoNaoMinerado inicializaBloco(int i, unsigned char hash[SHA256_DIGEST_LENGTH]);
-BlocoNaoMinerado gerarTransacoes(BlocoNaoMinerado bloco);
+BlocoNaoMinerado gerarTransacoes(BlocoNaoMinerado bloco, int *pont);
 //unsigned char *MinerarBloco(BlocoNaoMinerado bloco);
 void printHash(unsigned char hash[], int length);
 //BlocoMinerado *aloca(BlocoNaoMinerado blocoAminerar, unsigned char hashBloco[]);
@@ -34,7 +34,11 @@ BlocoMinerado * pesquisa(BlocoMinerado *ult, int numBloco, int qntBlocos);
 
 
 int main() {
-  int qntBlocos = 20;
+  int qntBlocos = 10000;
+  int bitContas[256];
+  for(int i = 0; i < 256; i++){
+    bitContas[i] = 0;
+  } 
   unsigned char hashAnterior[SHA256_DIGEST_LENGTH];
   for(int j = 0; j < SHA256_DIGEST_LENGTH; ++j){
     hashAnterior[j] = 0;
@@ -44,7 +48,7 @@ int main() {
   BlocoMinerado *ult = NULL;
   for(int i = 1; i <= qntBlocos; i++){
     BlocoNaoMinerado blocoZerado = inicializaBloco(i, hashAnterior);
-    BlocoNaoMinerado blocoTran = gerarTransacoes(blocoZerado);
+    BlocoNaoMinerado blocoTran = gerarTransacoes(blocoZerado, &bitContas[0]);
     
     unsigned char hashMine[SHA256_DIGEST_LENGTH];
     SHA256((unsigned char *)&blocoTran, sizeof(blocoTran), hashMine);
@@ -84,6 +88,9 @@ int main() {
   scanf("%d", &numBloco);
   pesquisa(ult, numBloco, qntBlocos);
 
+  for(int i = 0; i < 256; i++){
+    printf("%d = %d \n",i ,bitContas[i]);
+  } 
   return 0;
 }
 
@@ -100,13 +107,17 @@ BlocoNaoMinerado inicializaBloco(int i, unsigned char hash[SHA256_DIGEST_LENGTH]
   return bloco;
 }
 
-BlocoNaoMinerado gerarTransacoes(BlocoNaoMinerado bloco){
+BlocoNaoMinerado gerarTransacoes(BlocoNaoMinerado bloco, int *pont){
   MTRand randNumber = seedRand(1234567);
   unsigned char qtdTransacoes = (unsigned char) (1 + (genRandLong(&randNumber) % 61));
   for (int i = 0; i < qtdTransacoes; i++){
     bloco.data[(i*3)] = (unsigned char) genRandLong(&randNumber) % 256;
+    //printf("%d \n", bloco.data[(i*3)]);
     bloco.data[((i*3)+1)] = (unsigned char) genRandLong(&randNumber)% 256;
+    //printf("%d \n", bloco.data[((i*3)+1)]);
     bloco.data[((i*3)+2)] = (unsigned char) (1 + (genRandLong(&randNumber) % 50));
+    pont[bloco.data[(i*3)]] = pont[bloco.data[(i*3)]] - bloco.data[((i*3)+2)];
+    pont[bloco.data[((i*3)+1)]] = pont[bloco.data[((i*3)+1)]] + bloco.data[((i*3)+2)];
   }
   return bloco;
 }
