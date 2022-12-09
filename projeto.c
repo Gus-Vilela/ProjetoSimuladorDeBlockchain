@@ -1,9 +1,9 @@
 #include <stdio.h>
-#include "openssl/crypto.h" //arquivo de definição necessário para SHA256_DIGEST_LENGTH
-#include "openssl/sha.h" //arquivo de definição necessário função SHA256
-#include <string.h>
+#include "openssl/crypto.h" 
+#include "openssl/sha.h" 
 #include "mtwister.c"
 #include <assert.h>
+#include <stdlib.h>
 
 struct BlocoNaoMinerado
 {
@@ -20,35 +20,47 @@ struct BlocoMinerado
   unsigned char hash[SHA256_DIGEST_LENGTH];
   struct BlocoMinerado *prox;
 };
-
 typedef struct BlocoMinerado BlocoMinerado;
 
+struct BitContas
+{
+  int numero;
+  int bitcoin;
+}BContas[256];
+
+
 BlocoNaoMinerado inicializaBloco(int i, unsigned char hash[SHA256_DIGEST_LENGTH]);
-BlocoNaoMinerado gerarTransacoes(BlocoNaoMinerado bloco, int *pont);
+BlocoNaoMinerado gerarTransacoes(BlocoNaoMinerado bloco, struct BitContas *pont, MTRand *randNumber);
 //unsigned char *MinerarBloco(BlocoNaoMinerado bloco);
 void printHash(unsigned char hash[], int length);
 //BlocoMinerado *aloca(BlocoNaoMinerado blocoAminerar, unsigned char hashBloco[]);
 //BlocoMinerado *insereInicio(BlocoMinerado **prim, BlocoNaoMinerado blocoAminerar, unsigned char hashBloco[]);
 BlocoMinerado *insereFim(BlocoMinerado **ult, BlocoNaoMinerado blocoAminerar, unsigned char hashBloco[]);
 BlocoMinerado * pesquisa(BlocoMinerado *ult, int numBloco, int qntBlocos);
+void quickSort (struct BitContas v[], int p, int r);
+static int separa (struct BitContas v[], int p, int r);
 
 
 int main() {
   int qntBlocos = 10000;
-  int bitContas[256];
+  
   for(int i = 0; i < 256; i++){
-    bitContas[i] = 0;
+    BContas[i].bitcoin = 0;
+    BContas[i].numero = i;
   } 
+
   unsigned char hashAnterior[SHA256_DIGEST_LENGTH];
   for(int j = 0; j < SHA256_DIGEST_LENGTH; ++j){
     hashAnterior[j] = 0;
   } 
+
   //BlocoMinerado *prim;
   //prim = NULL;
+  MTRand randNumber = seedRand(1234567);
   BlocoMinerado *ult = NULL;
   for(int i = 1; i <= qntBlocos; i++){
     BlocoNaoMinerado blocoZerado = inicializaBloco(i, hashAnterior);
-    BlocoNaoMinerado blocoTran = gerarTransacoes(blocoZerado, &bitContas[0]);
+    BlocoNaoMinerado blocoTran = gerarTransacoes(blocoZerado, &BContas[0], &randNumber);
     
     unsigned char hashMine[SHA256_DIGEST_LENGTH];
     SHA256((unsigned char *)&blocoTran, sizeof(blocoTran), hashMine);
@@ -89,8 +101,15 @@ int main() {
   pesquisa(ult, numBloco, qntBlocos);
 
   for(int i = 0; i < 256; i++){
-    printf("%d = %d \n",i ,bitContas[i]);
+    printf("%d = %d \n",BContas[i].numero ,BContas[i].bitcoin);
   } 
+
+  quickSort(BContas, 0, 255);
+
+  for(int i = 0; i < 256; i++){
+    printf("%d = %d \n",BContas[i].numero ,BContas[i].bitcoin);
+  } 
+
   return 0;
 }
 
@@ -107,17 +126,18 @@ BlocoNaoMinerado inicializaBloco(int i, unsigned char hash[SHA256_DIGEST_LENGTH]
   return bloco;
 }
 
-BlocoNaoMinerado gerarTransacoes(BlocoNaoMinerado bloco, int *pont){
-  MTRand randNumber = seedRand(1234567);
-  unsigned char qtdTransacoes = (unsigned char) (1 + (genRandLong(&randNumber) % 61));
+BlocoNaoMinerado gerarTransacoes(BlocoNaoMinerado bloco, struct BitContas *pont, MTRand *randNumber){
+  
+  unsigned char qtdTransacoes = (unsigned char) (1 + (genRandLong(randNumber) % 61));
   for (int i = 0; i < qtdTransacoes; i++){
-    bloco.data[(i*3)] = (unsigned char) genRandLong(&randNumber) % 256;
+    bloco.data[(i*3)] = (unsigned char) genRandLong(randNumber) % 256;
     //printf("%d \n", bloco.data[(i*3)]);
-    bloco.data[((i*3)+1)] = (unsigned char) genRandLong(&randNumber)% 256;
+    bloco.data[((i*3)+1)] = (unsigned char) genRandLong(randNumber)% 256;
     //printf("%d \n", bloco.data[((i*3)+1)]);
-    bloco.data[((i*3)+2)] = (unsigned char) (1 + (genRandLong(&randNumber) % 50));
-    pont[bloco.data[(i*3)]] = pont[bloco.data[(i*3)]] - bloco.data[((i*3)+2)];
-    pont[bloco.data[((i*3)+1)]] = pont[bloco.data[((i*3)+1)]] + bloco.data[((i*3)+2)];
+    bloco.data[((i*3)+2)] = (unsigned char) (1 + (genRandLong(randNumber) % 50));
+
+    pont[bloco.data[(i*3)]].bitcoin= pont[bloco.data[(i*3)]].bitcoin - bloco.data[((i*3)+2)];
+    pont[bloco.data[((i*3)+1)]].bitcoin = pont[bloco.data[((i*3)+1)]].bitcoin + bloco.data[((i*3)+2)];
   }
   return bloco;
 }
@@ -213,4 +233,32 @@ BlocoMinerado * pesquisa(BlocoMinerado *ult, int numBloco, int qntBlocos){
     printf("Bloco nao encontrado \n");
     return NULL;
   }
+}
+
+void quickSort (struct BitContas v[], int p, int r)
+{
+  while (p < r) {      
+      int j = separa (v, p, r);    
+      if (j - p < r - j) {     
+        quickSort (v, p, j-1);
+        p = j + 1;            
+      } else {                 
+        quickSort (v, j+1, r);
+        r = j - 1;
+      }
+  }
+}
+
+static int separa (struct BitContas v[], int p, int r) 
+{
+  int c = v[r].bitcoin; // pivô
+  int  j = p;
+  struct BitContas t;
+  for (int k = p; /*A*/ k < r; ++k)
+    if (v[k].bitcoin <= c) {
+      t = v[j], v[j] = v[k], v[k] = t;
+      ++j; 
+    } 
+  t = v[j], v[j] = v[r], v[r]= t;
+  return j; 
 }
